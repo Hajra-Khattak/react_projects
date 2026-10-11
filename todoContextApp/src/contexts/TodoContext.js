@@ -5,12 +5,12 @@ export const toDoContext = createContext({
     todos: [
         {
             id: 1,
-            todoTitle: "To do msg",
+            todo: "To do msg",
             completed: false,
         }
     ],
     addTodo: (todo) => {},
-    updateToDo: (id, todoTitle) => {},
+    updateToDo: (id, todo) => {},
     deletedToDo: (id) => {},
     toggleComplete: (id) => {}
 

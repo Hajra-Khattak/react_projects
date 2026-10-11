@@ -1,11 +1,25 @@
 import { useState } from 'react'
 import './App.css'
+import {toDoProvider} from './contexts'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [todo, setTodo] = useState([])
+  const addTodo = (todo) => {
+    setTodo((prev) => [{
+        id: Date.now(), ...todo
+    }, ...prev
+])
+  }
+  const updateToDo = (id, todo) => {
+    setTodo((prev) => prev.map((prevTodo) => (prevTodo.id ===  id ? todo : prevTodo)))
+  }
+  const deletedToDo = () => {}
+  const toggleComplete = () => {}
+
 
   return (
     <>
+    <toDoProvider value={{todos, addTodo, updateToDo, deletedToDo, toggleComplete}}>
      <h1 className='text-5xl font-bold text-pink-800'>Hello React journey</h1>
      <div className="bg-[#172842] min-h-screen py-8">
                 <div className="w-full max-w-2xl mx-auto shadow-md rounded-lg px-4 py-3 text-white">
@@ -18,6 +32,7 @@ function App() {
                     </div>
                 </div>
             </div>
+            </toDoProvider>
     </>
   )
 }

@@ -1,38 +1,68 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-import {toDoProvider} from './contexts'
+import {ToDoProvider} from './contexts'
+import TodoForm from './components/TodoForm'
+import TodoItem from './components/ToDoItem'
 
 function App() {
-  const [todo, setTodo] = useState([])
+  const [todos, setTodos] = useState([])
+
   const addTodo = (todo) => {
-    setTodo((prev) => [{
+    setTodos((prev) => [{
         id: Date.now(), ...todo
     }, ...prev
 ])
   }
   const updateToDo = (id, todo) => {
-    setTodo((prev) => prev.map((prevTodo) => (prevTodo.id ===  id ? todo : prevTodo)))
+    setTodos((prev) => prev.map((prevTodo) => prevTodo.id === id ? todo : prevTodo))
   }
-  const deletedToDo = () => {}
-  const toggleComplete = () => {}
+  const deletedToDo = (id) => {
+    setTodos((prev) => prev.filter((todo) => todo.id !== id) )
+  }
+  const toggleComplete = (id) => {
+    setTodos((prev) => prev.map((prevTodo)=> prevTodo.id === id ? {...prevTodo, completed: !prevTodo.completed} : prevTodo))
+  }
+
+  useEffect(()=>{
+    const todos = JSON.parse(localStorage.getItem("todos"))
+
+    if (todos && todos.length > 0) {
+        setTodos(todos)       
+    }
+  }, [])
+
+
+  useEffect(()=>{
+    localStorage.setItem("todos", JSON.stringify((todos)))
+  }, [todos])
+
+
 
 
   return (
     <>
-    <toDoProvider value={{todos, addTodo, updateToDo, deletedToDo, toggleComplete}}>
-     <h1 className='text-5xl font-bold text-pink-800'>Hello React journey</h1>
+    <ToDoProvider value={{todos, addTodo, updateToDo, deletedToDo, toggleComplete}}>
      <div className="bg-[#172842] min-h-screen py-8">
                 <div className="w-full max-w-2xl mx-auto shadow-md rounded-lg px-4 py-3 text-white">
                     <h1 className="text-2xl font-bold text-center mb-8 mt-2">Manage Your Todos</h1>
                     <div className="mb-4">
                         {/* Todo form goes here */} 
+                        <TodoForm/>
                     </div>
                     <div className="flex flex-wrap gap-y-3">
                         {/*Loop and Add TodoItem here */}
+                        {/* if use {} after => then have to use return keyword */}
+                        {/* if use () after => then don't have to use return keyword coz it's auto return */}
+
+                        {todos.map((todo) => (
+                            <div key={todo.id} className='w-full'>
+                                <TodoItem todo={todo} />
+                             </div>
+                        ) )}
                     </div>
                 </div>
             </div>
-            </toDoProvider>
+            </ToDoProvider>
     </>
   )
 }

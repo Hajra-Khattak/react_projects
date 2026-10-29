@@ -5,7 +5,7 @@ import Home from './compenents/Home/home'
 import Footer from './compenents/Footer/footer'
 
 function App() {
-  const [count, setCount] = useState(0)
+
 
   return (
     <>

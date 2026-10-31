@@ -1,15 +1,15 @@
-import { useState } from 'react'
 
-import { Routes } from "react-router"
-
+import React from 'react'
 import './App.css'
 
 function App() {
-
-
   return (
     <>
-      
+      <Header />
+
+      <main>
+        <h1>App content here</h1>
+      </main>
     </>
   )
 }

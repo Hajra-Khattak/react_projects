@@ -1,36 +1,21 @@
-const stats = [
-  { label: 'Total tasks', value: '24', note: '+3 this week', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40' },
-  { label: 'In progress', value: '6', note: '2 due today', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/40' },
-  { label: 'Completed', value: '15', note: '62% done', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/40' },
-  { label: 'Best streak', value: '9 days', note: 'Keep it going', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/40' },
+import { useState } from 'react'
+import Button from '../components/Button/Button'
+import Input from '../components/Input/Input'
+import Modal from '../components/Modal/Modal'
+
+const initialTasks = [
+  { id: 1, title: 'Design landing page', status: 'todo', priority: 'High', due: '2026-11-03' },
+  { id: 2, title: 'Write project README', status: 'todo', priority: 'Low', due: '2026-11-08' },
+  { id: 3, title: 'Build login form', status: 'doing', priority: 'High', due: '2026-11-02' },
+  { id: 4, title: 'Create navbar menu', status: 'doing', priority: 'Medium', due: '2026-11-04' },
+  { id: 5, title: 'Set up Firebase', status: 'done', priority: 'High', due: '2026-10-30' },
+  { id: 6, title: 'Install Tailwind', status: 'done', priority: 'Low', due: '2026-10-29' },
 ]
 
-const columns = [
-  {
-    name: 'To Do',
-    dot: 'bg-gray-400',
-    tasks: [
-      { title: 'Design landing page', priority: 'High', due: 'Nov 3' },
-      { title: 'Write project README', priority: 'Low', due: 'Nov 8' },
-      { title: 'Plan Firestore data', priority: 'Medium', due: 'Nov 5' },
-    ],
-  },
-  {
-    name: 'Doing',
-    dot: 'bg-blue-500',
-    tasks: [
-      { title: 'Build login form', priority: 'High', due: 'Nov 2' },
-      { title: 'Create navbar menu', priority: 'Medium', due: 'Nov 4' },
-    ],
-  },
-  {
-    name: 'Done',
-    dot: 'bg-green-500',
-    tasks: [
-      { title: 'Set up Firebase', priority: 'High', due: 'Oct 30' },
-      { title: 'Install Tailwind', priority: 'Low', due: 'Oct 29' },
-    ],
-  },
+const columnsMeta = [
+  { key: 'todo', name: 'To Do', dot: 'bg-gray-400' },
+  { key: 'doing', name: 'Doing', dot: 'bg-blue-500' },
+  { key: 'done', name: 'Done', dot: 'bg-green-500' },
 ]
 
 const priorityStyle = {
@@ -56,13 +41,57 @@ const week = [
   { day: 'Sun', value: 1 },
 ]
 
+const emptyForm = { title: '', priority: 'Medium', due: '', status: 'todo' }
+
 export default function Dashboard() {
+  const [tasks, setTasks] = useState(initialTasks)
+  const [search, setSearch] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+  const [error, setError] = useState('')
+
+  const openForm = (status = 'todo') => {
+    setForm({ ...emptyForm, status })
+    setError('')
+    setShowForm(true)
+  }
+
+  const closeForm = () => setShowForm(false)
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value })
+
+  const handleSave = (e) => {
+    e.preventDefault()
+    if (!form.title.trim()) {
+      setError('Please enter a title')
+      return
+    }
+    setTasks([...tasks, { ...form, title: form.title.trim(), id: Date.now() }])
+    closeForm()
+  }
+
+  const visibleTasks = tasks.filter((t) =>
+    t.title.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const total = tasks.length
+  const doing = tasks.filter((t) => t.status === 'doing').length
+  const done = tasks.filter((t) => t.status === 'done').length
+  const percent = total === 0 ? 0 : Math.round((done / total) * 100)
   const maxValue = Math.max(...week.map((d) => d.value))
+
+  const stats = [
+    { label: 'Total tasks', value: total, note: 'All columns', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40' },
+    { label: 'In progress', value: doing, note: 'Being worked on', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/40' },
+    { label: 'Completed', value: done, note: `${percent}% done`, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/40' },
+    { label: 'Best streak', value: '9 days', note: 'Keep it going', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/40' },
+  ]
 
   return (
     <section className="bg-gray-50 dark:bg-gray-950 min-h-screen px-4 sm:px-6 py-8">
       <div className="max-w-7xl mx-auto">
-        {/* Page heading */}
+        {/* Heading row */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
@@ -72,15 +101,18 @@ export default function Dashboard() {
               Here is what is happening with your tasks today.
             </p>
           </div>
-          <div className="flex gap-3">
-            <input
+          <div className="flex gap-3 items-center">
+            <Input
+              id="search"
               type="search"
               placeholder="Search tasks..."
-              className="w-full sm:w-56 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full sm:w-56"
             />
-            <button className="shrink-0 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition">
+            <Button size="sm" onClick={() => openForm('todo')} className="shrink-0">
               + New task
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -96,63 +128,70 @@ export default function Dashboard() {
                 <span className={`w-9 h-9 rounded-lg ${s.bg}`} />
               </div>
               <p className={`mt-3 text-3xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">{s.note}</p>
+              <p className="mt-1 text-xs text-gray-500">{s.note}</p>
             </div>
           ))}
         </div>
 
-        {/* Main grid: board + side panels */}
+        {/* Board + side panels */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Kanban board */}
           <div className="xl:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Task board</h2>
-              <select className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200">
-                <option>All priorities</option>
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
-              </select>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Task board
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {columns.map((col) => (
-                <div
-                  key={col.name}
-                  className="bg-gray-100 dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
-                >
-                  <div className="flex items-center justify-between px-1 mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
-                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{col.name}</h3>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                      {col.tasks.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {col.tasks.map((task) => (
-                      <div
-                        key={task.title}
-                        className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700 cursor-grab"
-                      >
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{task.title}</p>
-                        <div className="flex items-center justify-between mt-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityStyle[task.priority]}`}>
-                            {task.priority}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">Due {task.due}</span>
-                        </div>
+              {columnsMeta.map((col) => {
+                const colTasks = visibleTasks.filter((t) => t.status === col.key)
+                return (
+                  <div
+                    key={col.key}
+                    className="bg-gray-100 dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
+                  >
+                    <div className="flex items-center justify-between px-1 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                          {col.name}
+                        </h3>
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                        {colTasks.length}
+                      </span>
+                    </div>
 
-                  <button className="mt-3 w-full text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition">
-                    + Add task
-                  </button>
-                </div>
-              ))}
+                    <div className="space-y-3">
+                      {colTasks.map((task) => (
+                        <div
+                          key={task.id}
+                          className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700 cursor-grab"
+                        >
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {task.title}
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityStyle[task.priority]}`}>
+                              {task.priority}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {task.due ? `Due ${task.due}` : 'No date'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => openForm(col.key)}
+                      className="mt-3 w-full text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition"
+                    >
+                      + Add task
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
@@ -161,7 +200,9 @@ export default function Dashboard() {
             {/* Habits */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Today's habits</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Today's habits
+                </h2>
                 <span className="text-xs text-gray-500 dark:text-gray-400">2 of 4 done</span>
               </div>
 
@@ -183,9 +224,7 @@ export default function Dashboard() {
                       </span>
                       <span
                         className={`text-sm ${
-                          h.done
-                            ? 'line-through text-gray-400'
-                            : 'text-gray-800 dark:text-gray-200'
+                          h.done ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'
                         }`}
                       >
                         {h.name}
@@ -197,10 +236,6 @@ export default function Dashboard() {
                   </li>
                 ))}
               </ul>
-
-              <button className="mt-4 w-full text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                + Add habit
-              </button>
             </div>
 
             {/* Weekly chart */}
@@ -223,20 +258,60 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-
-            {/* AI helper */}
-            <div className="rounded-xl p-5 bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-sm">
-              <h2 className="text-lg font-semibold">AI task helper</h2>
-              <p className="text-sm text-blue-100 mt-1">
-                Describe a big goal and get a list of small steps.
-              </p>
-              <button className="mt-4 px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-blue-50 transition">
-                Break down a task
-              </button>
-            </div>
           </div>
         </div>
       </div>
+
+      {/* Add task modal */}
+      <Modal open={showForm} onClose={closeForm} title="New task">
+        <form onSubmit={handleSave} className="space-y-4">
+          <Input
+            id="title"
+            name="title"
+            label="Title"
+            placeholder="What needs to be done?"
+            value={form.title}
+            onChange={handleChange}
+            error={error}
+          />
+
+          <div>
+            <label
+              htmlFor="priority"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Priority
+            </label>
+            <select
+              id="priority"
+              name="priority"
+              value={form.priority}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+
+          <Input
+            id="due"
+            name="due"
+            label="Due date"
+            type="date"
+            value={form.due}
+            onChange={handleChange}
+          />
+
+          <div className="flex gap-3 justify-end pt-2">
+            <Button variant="secondary" onClick={closeForm}>
+              Cancel
+            </Button>
+            <Button type="submit">Save task</Button>
+          </div>
+        </form>
+      </Modal>
     </section>
   )
 }

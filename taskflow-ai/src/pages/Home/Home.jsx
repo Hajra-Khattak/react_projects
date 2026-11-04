@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import Button from '../../components/Button/Button'
 
 const features = [
   {
@@ -62,6 +63,13 @@ export default function Home() {
             Plan your tasks, build daily habits and let AI break big goals into small steps.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+
+                                  {/* blue, filled (primary) */}
+<Button variant="secondary">Cancel</Button>    {/* gray, filled */}
+<Button variant="outline" size = 'sm'>Log in</Button>      {/* border only, no fill */}
+<Button variant="success" size = 'sm'>Log in</Button>      {/* border only, no fill */}
+<Button variant="danger">Delete</Button>       {/* red */}
+<Button variant="indigo">Delete</Button>       
             <Link
               to="/signup"
               className="px-8 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"

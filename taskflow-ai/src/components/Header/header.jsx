@@ -1,12 +1,13 @@
 import React, { useState, useContext } from 'react'
 // import { Link, NavLink } from 'react-router-dom'
-
+import { useAuth } from '../../context/AuthContext'
 
 import { ThemeContext, useTheme } from "../../context/ThemeContext"
 
 
 
 export default function Header() {
+    const { user, loading } = useAuth()
     // const { darkMode, toggleTheme } = useTheme();
     const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
@@ -15,6 +16,7 @@ export default function Header() {
             {/* <div className="flex flex-col"> */}
 
             {/* Header */}
+            <span>{loading ? 'Checking...' : user ? user.email : 'Not logged in'}</span>
 
             <header className="bg-gray-900 text-white px-8 py-5">
                 <nav className="max-w-6xl mx-auto flex justify-between items-center">
@@ -42,6 +44,9 @@ export default function Header() {
                             <a href="#" className="hover:text-blue-400">
                                 Contact
                             </a>
+                        </li>
+                        <li>    
+                            <Link to="login" className="hover:text-blue-400"> Login</Link>
                         </li>
                         <li>
 

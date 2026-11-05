@@ -10,12 +10,15 @@ import NotFound from './pages/NotFound.jsx'
 import { Route, createBrowserRouter, createRoutesFromElements } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { ThemeProvider } from "./context/ThemeContext";
+import { AuthProvider  } from "./context/AuthContext.jsx";
 import AddTask from './pages/Habit/AddTask.jsx'
 import DashboardHome from './pages/Dashboard/DashboardHome.jsx'
 import DashboardLayout from './pages/Dashboard/DashboardLayout.jsx'
 import TaskPage from './pages/Dashboard/TasksPage.jsx'
 import HabitsPage from './pages/Dashboard/HabitsPage.jsx'
 import StatsPage from './pages/Dashboard/StatsPage.jsx'
+
+import './services/firebase'
 
 
 const router = createBrowserRouter(
@@ -35,7 +38,7 @@ const router = createBrowserRouter(
         <Route path="habits" element={<HabitsPage />} />
         <Route path="stats" element={<StatsPage />} />
 
-      </Route>
+      </Route> 
       
      
 
@@ -50,7 +53,10 @@ createRoot(document.getElementById('root')).render(
 
   <StrictMode>
     <ThemeProvider>
+      <AuthProvider>
+
       <RouterProvider router={router} />
+      </AuthProvider>
     </ThemeProvider>
   </StrictMode>
 )

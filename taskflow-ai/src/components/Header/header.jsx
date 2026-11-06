@@ -1,16 +1,11 @@
-import React, { useState, useContext } from 'react'
-// import { Link, NavLink } from 'react-router-dom'
+import { Link } from 'react-router'
 import { useAuth } from '../../context/AuthContext'
-
-import { ThemeContext, useTheme } from "../../context/ThemeContext"
-
-
+import { useTheme } from '../../context/ThemeContext'
 
 export default function Header() {
-    const { user, loading } = useAuth()
-    // const { darkMode, toggleTheme } = useTheme();
-    const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
+    const { user, loading, logout } = useAuth()
+    const { theme, setTheme } = useTheme()
+    const isDark = theme === 'dark'
     return (
         <>
             {/* <div className="flex flex-col"> */}
@@ -45,8 +40,16 @@ export default function Header() {
                                 Contact
                             </a>
                         </li>
-                        <li>    
-                            <Link to="login" className="hover:text-blue-400"> Login</Link>
+                        <li>
+                            {loading ? null : user ? (
+                                <button onClick={logout} className="hover:text-blue-400">
+                                    Logout
+                                </button>
+                            ) : (
+                                <Link to="/login" className="hover:text-blue-400">
+                                    Login
+                                </Link>
+                            )}
                         </li>
                         <li>
 

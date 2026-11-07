@@ -14,6 +14,9 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  const busy = loading || googleLoading
 
   // Redirect as soon as Firebase reports a logged-in user
   useEffect(() => {
@@ -22,10 +25,11 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (busy) return
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      await login(email.trim(), password)
     } catch (err) {
       console.error(err)
       setError(getAuthError(err))
@@ -35,12 +39,16 @@ export default function Login() {
   }
 
   const handleGoogle = async () => {
+    if (busy) return
     setError('')
+    setGoogleLoading(true)
     try {
       await loginWithGoogle()
     } catch (err) {
       console.error(err)
       setError(getAuthError(err))
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -57,10 +65,11 @@ export default function Login() {
         <button
           type="button"
           onClick={handleGoogle}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          disabled={busy}
+          className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <GoogleIcon />
-          Continue with Google
+          {googleLoading ? 'Opening Google...' : 'Continue with Google'}
         </button>
 
         <div className="flex items-center gap-3 my-6">
@@ -77,6 +86,7 @@ export default function Login() {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={busy}
             required
           />
           <Input
@@ -86,12 +96,13 @@ export default function Login() {
             placeholder="Your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={busy}
             required
           />
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <Button type="submit" fullWidth loading={loading}>
+          <Button type="submit" fullWidth loading={loading} disabled={googleLoading}>
             Log in
           </Button>
         </form>

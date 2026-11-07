@@ -1,4 +1,5 @@
 import React from 'react'
+import Spinner from '../Spinner/Spinner'
 
 // src/components/Button/Button.jsx
 const variants = {
@@ -41,7 +42,16 @@ export default function Button({
         ${className}
       `}
     >
-      {loading ? 'Please wait...' : children}
+      {/* {loading ? 'Please wait...' : children} */}
+      {loading ? (
+  <span className="flex items-center justify-center gap-2">
+    <Spinner size="sm" />
+    Please wait...
+  </span>
+) : (
+  children
+)}
+      
     </button>
   )
 }

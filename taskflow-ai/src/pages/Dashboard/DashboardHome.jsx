@@ -3,6 +3,8 @@ import StatCards from '../../components/Dashboard/StatCards'
 import TaskBoard from '../../components/Dashboard/TaskBoard'
 import HabitsPanel from '../../components/Dashboard/HabitsPanel'
 import WeeklyChart from '../../components/Dashboard/WeeklyChart'
+import ActivityStreak from '../../components/Dashboard/ActivityStreak'
+import WeeklyHabits from '../../components/Dashboard/WeeklyHabits'
 
 export default function DashboardHome() {
   const { tasks, visibleTasks, habits, toggleHabit, openForm } = useOutletContext()
@@ -12,9 +14,17 @@ export default function DashboardHome() {
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
         Welcome back, Hajra
       </h1>
+      <ActivityStreak />
+      {/* <div className="mt-8">
+  <StatCards tasks={tasks} habits={habits} />
+</div> */}
+<div className="mt-6">
+  <WeeklyHabits />
+</div>
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-8">
         Here is what is happening with your tasks today.
       </p>
+      
 
       <StatCards tasks={tasks} habits={habits} />
 

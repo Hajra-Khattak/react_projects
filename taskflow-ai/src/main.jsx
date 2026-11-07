@@ -17,6 +17,7 @@ import DashboardLayout from './pages/Dashboard/DashboardLayout.jsx'
 import TaskPage from './pages/Dashboard/TasksPage.jsx'
 import HabitsPage from './pages/Dashboard/HabitsPage.jsx'
 import StatsPage from './pages/Dashboard/StatsPage.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 import './services/firebase'
 
@@ -32,12 +33,13 @@ const router = createBrowserRouter(
         <Route path='habits' element={<AddTask />} />
         <Route path='habits' element={<AddTask />} />
       </Route>
+      <Route element={<ProtectedRoute />}>
       <Route path='dashboard'  element={<DashboardLayout/>}>
         <Route index element={<DashboardHome/>} />
         <Route path="tasks" element={<TaskPage/>} />
         <Route path="habits" element={<HabitsPage />} />
         <Route path="stats" element={<StatsPage />} />
-
+</Route>
       </Route> 
       
      

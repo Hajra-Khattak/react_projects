@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../../context/AuthContext'
 import { getAuthError } from '../../utils/authErrors'
@@ -7,7 +7,7 @@ import Button from '../../components/Button/Button'
 import GoogleIcon from '../../components/GoogleIcon'
 
 export default function SignUp() {
-  const { signup, loginWithGoogle } = useAuth()
+  const { user, signup, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -18,6 +18,12 @@ export default function SignUp() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  // Redirect as soon as Firebase reports a logged-in user
+  useEffect(() => {
+    if (user) navigate('/dashboard', { replace: true })
+  }, [user, navigate])
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -32,8 +38,7 @@ export default function SignUp() {
 
     setLoading(true)
     try {
-      await signup(form.name.trim(), form.email, form.password)
-      navigate('/dashboard')
+      await signup(form.name.trim(), form.email.trim(), form.password)
     } catch (err) {
       console.error(err)
       setError(getAuthError(err))
@@ -44,12 +49,14 @@ export default function SignUp() {
 
   const handleGoogle = async () => {
     setError('')
+    setGoogleLoading(true)
     try {
       await loginWithGoogle()
-      navigate('/dashboard')
     } catch (err) {
       console.error(err)
       setError(getAuthError(err))
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -66,10 +73,11 @@ export default function SignUp() {
         <button
           type="button"
           onClick={handleGoogle}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          disabled={googleLoading}
+          className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <GoogleIcon />
-          Continue with Google
+          {googleLoading ? 'Opening Google...' : 'Continue with Google'}
         </button>
 
         <div className="flex items-center gap-3 my-6">
@@ -79,14 +87,44 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Input id="name" name="name" label="Full name" placeholder="Your name"
-            value={form.name} onChange={handleChange} />
-          <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com"
-            value={form.email} onChange={handleChange} required />
-          <Input id="password" name="password" label="Password" type="password" placeholder="At least 6 characters"
-            value={form.password} onChange={handleChange} required />
-          <Input id="confirmPassword" name="confirmPassword" label="Confirm password" type="password" placeholder="Repeat your password"
-            value={form.confirmPassword} onChange={handleChange} required />
+          <Input
+            id="name"
+            name="name"
+            label="Full name"
+            placeholder="Your name"
+            value={form.name}
+            onChange={handleChange}
+          />
+          <Input
+            id="email"
+            name="email"
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            id="password"
+            name="password"
+            label="Password"
+            type="password"
+            placeholder="At least 6 characters"
+            value={form.password}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            label="Confirm password"
+            type="password"
+            placeholder="Repeat your password"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            required
+          />
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

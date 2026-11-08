@@ -4,51 +4,149 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import Button from '../../components/Button/Button'
 import Input from '../../components/Input/Input'
 import Modal from '../../components/Modal/Modal'
-import { initialTasks, initialHabits } from '../../utils/constants'
-
-const emptyForm = { title: '', priority: 'Medium', due: '', status: 'todo' }
+import TaskFormModal from '../../components/Dashboard/TaskFormModal'
+import HabitFormModal from '../../components/Dashboard/HabitFormModal'
+import { useTasks } from '../../hooks/useTasks'
+import { useHabits } from '../../hooks/useHabits'
+import { useTimeZone } from '../../context/TimeZoneContext'
+import { getWeekDays } from '../../utils/dates'
+import { currentStreak, bestStreak, buildCounts } from '../../utils/activity'
+import { habitColors } from '../../utils/constants'
 
 export default function DashboardLayout() {
+  const { timeZone, today } = useTimeZone()
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [tasks, setTasks] = useState(initialTasks)
-  const [habits, setHabits] = useState(initialHabits)
   const [search, setSearch] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(emptyForm)
-  const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
 
-  const openForm = (status = 'todo') => {
-    setForm({ ...emptyForm, status })
-    setError('')
-    setShowForm(true)
-  }
-  const closeForm = () => setShowForm(false)
+  const {
+    tasks,
+    loading: loadingTasks,
+    error: tasksError,
+    createTask,
+    editTask,
+    removeTask,
+  } = useTasks()
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+  const {
+    habits: rawHabits,
+    loading: loadingHabits,
+    error: habitsError,
+    createHabit,
+    setDay,
+  } = useHabits()
 
-  const handleSave = (e) => {
-    e.preventDefault()
-    if (!form.title.trim()) {
-      setError('Please enter a title')
-      return
+  // Popups
+  const [formState, setFormState] = useState(null) // { task, status, due }
+  const [habitFormOpen, setHabitFormOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  // Habits with calculated fields (done today, streaks)
+  const habits = rawHabits.map((h) => {
+    const dates = h.completedDates || []
+    return {
+      ...h,
+      completedDates: dates,
+      weeklyGoal: h.weeklyGoal || 7,
+      done: dates.includes(today),
+      streak: currentStreak(dates, today),
+      best: bestStreak(dates),
     }
-    setTasks([...tasks, { ...form, title: form.title.trim(), id: Date.now() }])
+  })
+
+  // Heatmap data and top numbers
+  const activityCounts = buildCounts(tasks, habits, timeZone)
+  const weekKeys = getWeekDays(today).map((d) => d.key)
+  const goalTotal = habits.reduce((sum, h) => sum + h.weeklyGoal, 0)
+  const goalDone = habits.reduce(
+    (sum, h) =>
+      sum + Math.min(h.weeklyGoal, h.completedDates.filter((k) => weekKeys.includes(k)).length),
+    0
+  )
+  const activityStats = {
+    current: Math.max(0, ...habits.map((h) => h.streak)),
+    longest: Math.max(0, ...habits.map((h) => h.best)),
+    consistency: goalTotal === 0 ? 0 : Math.round((goalDone / goalTotal) * 100),
+  }
+
+  // Runs an action and shows one error message if it fails
+  const run = async (action) => {
+    setActionError('')
+    try {
+      await action()
+    } catch (err) {
+      console.error(err)
+      setActionError('Something went wrong. Please try again.')
+    }
+  }
+
+  // Tasks
+  const openAdd = (status = 'todo', due = '') => setFormState({ task: null, status, due })
+  const openEdit = (task) => setFormState({ task, status: task.status, due: task.due })
+  const closeForm = () => setFormState(null)
+
+  const handleSave = async (data) => {
+    if (formState.task) {
+      await editTask(formState.task.id, data)
+    } else {
+      await createTask(data)
+    }
     closeForm()
   }
 
-  // Sample logic only. Real streaks are calculated from dates in Phase 4.
-  const toggleHabit = (id) =>
-    setHabits(
-      habits.map((h) =>
-        h.id === id
-          ? { ...h, done: !h.done, streak: h.done ? h.streak - 1 : h.streak + 1 }
-          : h
-      )
-    )
+  const toggleTaskDone = (task) =>
+    run(() => editTask(task.id, { status: task.status === 'done' ? 'todo' : 'done' }))
+
+  const askDelete = (task) => {
+    setDeleteError('')
+    setDeleteTarget(task)
+  }
+  const closeDelete = () => {
+    if (!deleting) setDeleteTarget(null)
+  }
+  const confirmDelete = async () => {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await removeTask(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (err) {
+      console.error(err)
+      setDeleteError('Could not delete the task. Please try again.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Habits
+  const openAddHabit = () => setHabitFormOpen(true)
+  const closeHabitForm = () => setHabitFormOpen(false)
+
+  const handleSaveHabit = async (data) => {
+    await createHabit({
+      ...data,
+      color: habitColors[rawHabits.length % habitColors.length],
+    })
+    closeHabitForm()
+  }
+
+  const toggleHabitDay = (habit, dateKey) =>
+    run(() => setDay(habit.id, dateKey, !habit.completedDates.includes(dateKey)))
+
+  // Used by the habits list (toggles today)
+  const toggleHabit = (id) => {
+    const habit = habits.find((h) => h.id === id)
+    if (habit) toggleHabitDay(habit, today)
+  }
 
   const visibleTasks = tasks.filter((t) =>
     t.title.toLowerCase().includes(search.toLowerCase())
   )
+
+  const bannerError = actionError || tasksError || habitsError
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 lg:flex">
@@ -77,7 +175,7 @@ export default function DashboardLayout() {
             className="flex-1 max-w-md"
           />
 
-          <Button size="sm" onClick={() => openForm('todo')} className="shrink-0">
+          <Button size="sm" onClick={() => openAdd('todo')} className="shrink-0">
             + New task
           </Button>
         </header>
@@ -85,48 +183,63 @@ export default function DashboardLayout() {
         {/* Page content */}
         <main className="flex-1 px-4 sm:px-6 py-8">
           <div className="max-w-7xl mx-auto">
-            <Outlet context={{ tasks, visibleTasks, habits, toggleHabit, openForm }} />
+            {bannerError && (
+              <p className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm px-4 py-3">
+                {bannerError}
+              </p>
+            )}
+
+            <Outlet
+              context={{
+                tasks,
+                visibleTasks,
+                loadingTasks,
+                habits,
+                loadingHabits,
+                activityCounts,
+                activityStats,
+                toggleHabit,
+                toggleHabitDay,
+                toggleTaskDone,
+                openAddHabit,
+                openAdd,
+                openEdit,
+                askDelete,
+              }}
+            />
           </div>
         </main>
       </div>
 
-      {/* Add task popup (shared by every dashboard page) */}
-      <Modal open={showForm} onClose={closeForm} title="New task">
-        <form onSubmit={handleSave} className="space-y-4">
-          <Input
-            id="title"
-            name="title"
-            label="Title"
-            placeholder="What needs to be done?"
-            value={form.title}
-            onChange={handleChange}
-            error={error}
-          />
+      {/* Add / Edit task popup */}
+      <TaskFormModal
+        open={!!formState}
+        onClose={closeForm}
+        onSave={handleSave}
+        task={formState?.task}
+        defaultStatus={formState?.status}
+        defaultDue={formState?.due}
+      />
 
-          <div>
-            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Priority
-            </label>
-            <select
-              id="priority"
-              name="priority"
-              value={form.priority}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-          </div>
+      {/* New habit popup */}
+      <HabitFormModal open={habitFormOpen} onClose={closeHabitForm} onSave={handleSaveHabit} />
 
-          <Input id="due" name="due" label="Due date" type="date" value={form.due} onChange={handleChange} />
+      {/* Delete confirmation popup */}
+      <Modal open={!!deleteTarget} onClose={closeDelete} title="Delete task?">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          "{deleteTarget?.title}" will be deleted. This can't be undone.
+        </p>
 
-          <div className="flex gap-3 justify-end pt-2">
-            <Button variant="secondary" onClick={closeForm}>Cancel</Button>
-            <Button type="submit">Save task</Button>
-          </div>
-        </form>
+        {deleteError && <p className="mt-3 text-sm text-red-600">{deleteError}</p>}
+
+        <div className="mt-6 flex gap-3 justify-end">
+          <Button variant="secondary" onClick={closeDelete} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete} loading={deleting}>
+            Delete
+          </Button>
+        </div>
       </Modal>
     </div>
   )

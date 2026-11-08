@@ -1,8 +1,8 @@
 import { useOutletContext } from 'react-router'
-import TaskBoard from '../../components/Dashboard/TaskBoard'
+import TaskBoard from '../../components/dashboard/TaskBoard'
 
 export default function TasksPage() {
-  const { visibleTasks, openForm } = useOutletContext()
+  const { visibleTasks, loadingTasks, openAdd, openEdit, askDelete } = useOutletContext()
 
   return (
     <>
@@ -10,7 +10,13 @@ export default function TasksPage() {
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-8">
         Plan, track and finish your work.
       </p>
-      <TaskBoard tasks={visibleTasks} onAdd={openForm} />
+      <TaskBoard
+        tasks={visibleTasks}
+        loading={loadingTasks}
+        onAdd={openAdd}
+        onEdit={openEdit}
+        onDelete={askDelete}
+      />
     </>
   )
 }

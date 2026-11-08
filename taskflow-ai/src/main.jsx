@@ -18,7 +18,7 @@ import TaskPage from './pages/Dashboard/TasksPage.jsx'
 import HabitsPage from './pages/Dashboard/HabitsPage.jsx'
 import StatsPage from './pages/Dashboard/StatsPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
-
+import { TimeZoneProvider } from './context/TimeZoneContext.jsx'
 import './services/firebase'
 
 
@@ -56,8 +56,10 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
       <AuthProvider>
+<TimeZoneProvider>
 
       <RouterProvider router={router} />
+</TimeZoneProvider>
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>

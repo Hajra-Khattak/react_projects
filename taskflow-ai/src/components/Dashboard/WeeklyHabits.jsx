@@ -1,3 +1,6 @@
+import { getWeekDays, formatKey } from '../../utils/dates'
+import { useTimeZone } from '../../context/TimeZoneContext'
+
 const habits = [
   { name: 'Read 1 hour', letter: 'R', color: 'bg-teal-500', done: [true, true, true, true, true, true, false] },
   { name: 'Drink water', letter: 'W', color: 'bg-yellow-500', done: [true, true, true, true, true, false, false] },
@@ -9,7 +12,12 @@ const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 // Builds the current week (Monday to Sunday) with plain JavaScript
 function getWeek() {
-  const today = new Date()
+    const { today } = useTimeZone()
+const week = getWeekDays(today)
+const weekKeys = week.map((d) => d.key)
+const monthName = formatKey(today, { month: 'long' })
+const yearNumber = today.slice(0, 4)
+//   const today = new Date()
   const mondayOffset = (today.getDay() + 6) % 7
   const monday = new Date(today)
   monday.setDate(today.getDate() - mondayOffset)

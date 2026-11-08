@@ -1,6 +1,7 @@
 import { NavLink, Link, useNavigate  } from 'react-router'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
+import TimeZoneSelect from '../TimeZoneSelect/TimeZoneSelect'
 
 
 const links = [
@@ -87,6 +88,7 @@ export default function Sidebar({ open, onClose }) {
           <Link to="/" className={linkClass({ isActive: false })}>
             Back to website
           </Link>
+          <TimeZoneSelect />
           {/* Logout: connect to Firebase signOut in Phase 2 */}
           <button
             type="button"

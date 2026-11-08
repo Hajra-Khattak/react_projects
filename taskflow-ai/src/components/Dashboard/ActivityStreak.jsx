@@ -1,6 +1,7 @@
-const YEAR = 2026
+import { addDays, weekdayIndex, daysBetween, formatKey } from '../../utils/dates'
+import { useTimeZone } from '../../context/TimeZoneContext'
 
-// 0 = no tasks, 1 = 1, 2 = 2-3, 3 = 4-5, 4 = 6+
+// 0 = none, 1 = 1, 2 = 2-3, 3 = 4-5, 4 = 6+
 const levelStyle = [
   'bg-gray-100 dark:bg-gray-800',
   'bg-blue-200 dark:bg-blue-900',
@@ -13,12 +14,6 @@ const legend = ['0', '1', '2-3', '4-5', '6+']
 const dayLabels = ['Mon', '', 'Wed', '', 'Fri', '', '']
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-const sideStats = [
-  { label: 'Current streak', value: '9', unit: 'days', color: 'text-orange-600 dark:text-orange-400' },
-  { label: 'Longest streak', value: '21', unit: 'days', color: 'text-purple-600 dark:text-purple-400' },
-//   { label: 'Consistency', value: '83%', unit: 'rate', color: 'text-green-600 dark:text-green-400' },
-]
-
 function getLevel(count) {
   if (count === 0) return 0
   if (count === 1) return 1
@@ -27,33 +22,38 @@ function getLevel(count) {
   return 4
 }
 
-// Placeholder data only. Replace the count with real data later.
-function buildWeeks(year) {
-  const jan1 = new Date(year, 0, 1)
-  const offset = (jan1.getDay() + 6) % 7 // Monday = 0
-  const start = new Date(year, 0, 1 - offset)
-  const today = new Date()
+function buildWeeks(year, counts, today) {
+  const jan1 = `${year}-01-01`
+  const start = addDays(jan1, -weekdayIndex(jan1))
+  const daysInYear = daysBetween(jan1, `${year + 1}-01-01`)
+  const weekCount = Math.ceil((weekdayIndex(jan1) + daysInYear) / 7)
   const weeks = []
 
-  for (let w = 0; w < 53; w++) {
+  for (let w = 0; w < weekCount; w++) {
     const days = []
     for (let d = 0; d < 7; d++) {
-      const date = new Date(start)
-      date.setDate(start.getDate() + w * 7 + d)
-      const inYear = date.getFullYear() === year
-      const hash = ((w * 7 + d) * 37 + d * 11 + w * 13) % 9
-      const count = inYear && date <= today ? [0, 0, 1, 2, 3, 4, 5, 6, 7][hash] : 0
-      days.push({ date, inYear, count })
+      const key = addDays(start, w * 7 + d)
+      const inYear = key.startsWith(`${year}-`)
+      const count = inYear && key <= today ? counts[key] || 0 : 0
+      days.push({ key, inYear, count })
     }
     weeks.push(days)
   }
   return weeks
 }
 
-const weeks = buildWeeks(YEAR)
-const totalTasks = weeks.flat().reduce((sum, day) => sum + day.count, 0)
+export default function ActivityStreak({ counts = {}, stats = {} }) {
+  const { today } = useTimeZone()
+  const year = Number(today.slice(0, 4))
+  const weeks = buildWeeks(year, counts, today)
+  const totalActivity = weeks.flat().reduce((sum, day) => sum + day.count, 0)
 
-export default function ActivityStreak() {
+  const sideStats = [
+    { label: 'Current streak', value: String(stats.current ?? 0), unit: 'days', color: 'text-orange-600 dark:text-orange-400' },
+    { label: 'Longest streak', value: String(stats.longest ?? 0), unit: 'days', color: 'text-purple-600 dark:text-purple-400' },
+    { label: 'Weekly goal', value: `${stats.consistency ?? 0}%`, unit: 'this week', color: 'text-green-600 dark:text-green-400' },
+  ]
+
   return (
     <div className="flex flex-col xl:flex-row gap-4">
       {/* Heatmap card */}
@@ -61,14 +61,13 @@ export default function ActivityStreak() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Activity ({YEAR})
+              Activity ({year})
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {totalTasks} tasks completed this year
+              {totalActivity} {totalActivity === 1 ? 'activity' : 'activities'} this year
             </p>
           </div>
 
-          {/* Legend */}
           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             {legend.map((label, i) => (
               <div key={label} className="flex items-center gap-1">
@@ -97,26 +96,28 @@ export default function ActivityStreak() {
             {/* Weeks */}
             <div className="flex gap-1">
               {weeks.map((days, w) => {
-                const firstOfMonth = days.find((d) => d.inYear && d.date.getDate() === 1)
+                const firstOfMonth = days.find((d) => d.inYear && d.key.endsWith('-01'))
                 return (
                   <div key={w} className="flex flex-col gap-1">
                     <span className="h-4 text-[10px] leading-4 text-gray-500 dark:text-gray-400 overflow-visible whitespace-nowrap">
-                      {firstOfMonth ? monthNames[firstOfMonth.date.getMonth()] : ''}
+                      {firstOfMonth ? monthNames[Number(firstOfMonth.key.slice(5, 7)) - 1] : ''}
                     </span>
 
-                    {days.map((day, d) =>
+                    {days.map((day) =>
                       day.inYear ? (
                         <span
-                          key={d}
-                          title={`${day.count} task${day.count === 1 ? '' : 's'} on ${day.date.toLocaleDateString('en-US', {
+                          key={day.key}
+                          title={`${day.count} ${day.count === 1 ? 'activity' : 'activities'} on ${formatKey(day.key, {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
                           })}`}
-                          className={`w-3 h-3 rounded-sm ${levelStyle[getLevel(day.count)]} hover:ring-2 hover:ring-blue-400`}
+                          className={`w-3 h-3 rounded-sm ${levelStyle[getLevel(day.count)]} ${
+                            day.key === today ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-400'
+                          }`}
                         />
                       ) : (
-                        <span key={d} className="w-3 h-3" />
+                        <span key={day.key} className="w-3 h-3" />
                       )
                     )}
                   </div>

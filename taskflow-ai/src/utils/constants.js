@@ -35,3 +35,14 @@ export const week = [
   { day: 'Sat', value: 7 },
   { day: 'Sun', value: 1 },
 ]
+
+export const habitColors = [
+  'bg-teal-500',
+  'bg-yellow-500',
+  'bg-red-500',
+  'bg-blue-500',
+  'bg-purple-500',
+  'bg-pink-500',
+  'bg-orange-500',
+  'bg-green-500',
+]

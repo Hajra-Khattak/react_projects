@@ -29,7 +29,13 @@ export default function DashboardHome() {
   <StatCards tasks={tasks} habits={habits} />
 </div> */}
       <div className="mt-6">
-        <WeeklyHabits />
+        {/* <WeeklyHabits /> */}
+        <WeeklyHabits
+  habits={habits}
+  loading={loadingHabits}
+  onToggleDay={toggleHabitDay}
+  onAdd={openAdd}
+/>
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-8">
         Here is what is happening with your tasks today.

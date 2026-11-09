@@ -1,55 +1,42 @@
 import { getWeekDays, formatKey } from '../../utils/dates'
 import { useTimeZone } from '../../context/TimeZoneContext'
+import Skeleton from '../Skeleton/Skeleton'
 
-const habits = [
-  { name: 'Read 1 hour', letter: 'R', color: 'bg-teal-500', done: [true, true, true, true, true, true, false] },
-  { name: 'Drink water', letter: 'W', color: 'bg-yellow-500', done: [true, true, true, true, true, false, false] },
-  { name: '100 push-ups', letter: 'P', color: 'bg-red-500', done: [true, true, true, false, false, false, false] },
-  { name: 'Code for 1 hour', letter: 'C', color: 'bg-blue-500', done: [true, true, false, true, false, false, false] },
-]
+export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd }) {
+  const { today } = useTimeZone()
+  const week = getWeekDays(today)
+  const weekKeys = week.map((d) => d.key)
 
-const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+  const monthName = formatKey(today, { month: 'long' })
+  const yearNumber = today.slice(0, 4)
 
-// Builds the current week (Monday to Sunday) with plain JavaScript
-function getWeek() {
-    const { today } = useTimeZone()
-const week = getWeekDays(today)
-const weekKeys = week.map((d) => d.key)
-const monthName = formatKey(today, { month: 'long' })
-const yearNumber = today.slice(0, 4)
-//   const today = new Date()
-  const mondayOffset = (today.getDay() + 6) % 7
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - mondayOffset)
+  const weekCount = (h) => h.completedDates.filter((k) => weekKeys.includes(k)).length
+  const safeHabits = Array.isArray(habits) ? habits : []
+  const totalGoal = safeHabits.reduce(
+  (sum, h) => sum + (Number(h.weeklyGoal) || 0),
+  0
+)
+  // const totalGoal = habits.reduce((sum, h) => sum + h.weeklyGoal, 0)
+  const totalDone = habits.reduce((sum, h) => sum + Math.min(h.weeklyGoal, weekCount(h)), 0)
 
-  return dayNames.map((name, i) => {
-    const date = new Date(monday)
-    date.setDate(monday.getDate() + i)
-    return {
-      name,
-      day: date.getDate(),
-      isToday: date.toDateString() === today.toDateString(),
-      isFuture: date > today && date.toDateString() !== today.toDateString(),
-    }
-  })
-}
-
-const week = getWeek()
-const monthName = new Date().toLocaleDateString('en-US', { month: 'long' })
-const yearNumber = new Date().getFullYear()
-
-export default function WeeklyHabits() {
   return (
     <section className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
-      {/* Heading */}
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          {monthName}{' '}
-          <span className="font-normal text-gray-500 dark:text-gray-400">{yearNumber}</span>
-        </h2>
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {monthName}{' '}
+            <span className="font-normal text-gray-500 dark:text-gray-400">{yearNumber}</span>
+          </h2>
+          {habits.length > 0 && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Weekly goal: {totalDone} of {totalGoal} check-ins
+            </p>
+          )}
+        </div>
 
         <button
           type="button"
+          onClick={onAdd}
           className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"
         >
           <span className="text-base leading-none">+</span>
@@ -57,10 +44,9 @@ export default function WeeklyHabits() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <div className="min-w-[640px]">
-          {/* Day header row */}
+          {/* Day header */}
           <div className="grid grid-cols-[200px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800">
             <div />
             {week.map((d) => (
@@ -88,64 +74,105 @@ export default function WeeklyHabits() {
             ))}
           </div>
 
-          {/* Habit rows */}
-          {habits.map((habit) => {
-            const doneCount = habit.done.filter(Boolean).length
-            return (
-              <div
-                key={habit.name}
-                className="grid grid-cols-[200px_repeat(7,1fr)] items-center border-b last:border-b-0 border-gray-100 dark:border-gray-800"
-              >
-                {/* Habit name */}
-                <div className="flex items-center gap-3 py-4 pr-3">
-                  <span
-                    className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm font-bold text-white ${habit.color}`}
-                  >
-                    {habit.letter}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                      {habit.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{doneCount}/7</p>
-                  </div>
-                </div>
+          {/* Loading */}
+          {loading && (
+            <div className="space-y-3 py-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          )}
 
-                {/* Day checkboxes */}
-                {week.map((d, i) => (
-                  <div
-                    key={d.name}
-                    className="flex items-center justify-center py-4 border-l border-gray-100 dark:border-gray-800"
-                  >
-                    {habit.done[i] ? (
-                      <span className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center shadow-sm">
-                        <svg
-                          className="w-4 h-4 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                      </span>
-                    ) : (
-                      <span
-                        className={`w-6 h-6 rounded-md border-2 ${
-                          d.isFuture
-                            ? 'border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900'
-                            : 'border-gray-300 dark:border-gray-600'
+          {/* Empty */}
+          {!loading && habits.length === 0 && (
+            <div className="py-10 text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                No habits yet. Add your first one to start a streak.
+              </p>
+              <button
+                type="button"
+                onClick={onAdd}
+                className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                + New habit
+              </button>
+            </div>
+          )}
+
+          {/* Habit rows */}
+          {!loading &&
+            habits.map((habit) => {
+              const count = weekCount(habit)
+              const reached = count >= habit.weeklyGoal
+              return (
+                <div
+                  key={habit.id}
+                  className="grid grid-cols-[200px_repeat(7,1fr)] items-center border-b last:border-b-0 border-gray-100 dark:border-gray-800"
+                >
+                  <div className="flex items-center gap-3 py-4 pr-3">
+                    <span
+                      className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm font-bold text-white ${habit.color}`}
+                    >
+                      {habit.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {habit.name}
+                      </p>
+                      <p
+                        className={`text-xs ${
+                          reached
+                            ? 'text-green-600 dark:text-green-400 font-medium'
+                            : 'text-gray-500 dark:text-gray-400'
                         }`}
-                      />
-                    )}
+                      >
+                        {count}/{habit.weeklyGoal} this week
+                        {habit.streak > 0 && ` · ${habit.streak} day streak`}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )
-          })}
+
+                  {week.map((d) => {
+                    const checked = habit.completedDates.includes(d.key)
+                    return (
+                      <div
+                        key={d.key}
+                        className="flex items-center justify-center py-4 border-l border-gray-100 dark:border-gray-800"
+                      >
+                        <button
+                          type="button"
+                          disabled={d.isFuture}
+                          onClick={() => onToggleDay(habit, d.key)}
+                          aria-label={`${habit.name} on ${d.name} ${d.day}: ${checked ? 'done' : 'not done'}`}
+                          aria-pressed={checked}
+                          className={`w-6 h-6 rounded-md flex items-center justify-center transition disabled:cursor-not-allowed ${
+                            checked
+                              ? 'bg-blue-600 shadow-sm'
+                              : d.isFuture
+                              ? 'border-2 border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900'
+                              : 'border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500'
+                          }`}
+                        >
+                          {checked && (
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                            >
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
         </div>
       </div>
     </section>

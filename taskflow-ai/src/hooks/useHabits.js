@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { subscribeToHabits, addHabit, setHabitDay } from '../services/habitService'
+import {
+  subscribeToHabits,
+  addHabit,
+  updateHabit,
+  deleteHabit,
+  setHabitDay,
+} from '../services/habitService'
 
 export function useHabits() {
   const { user } = useAuth()
@@ -36,7 +42,9 @@ export function useHabits() {
   }, [uid])
 
   const createHabit = (habit) => addHabit(uid, habit)
+  const editHabit = (id, changes) => updateHabit(id, changes)
+  const removeHabit = (id) => deleteHabit(id)
   const setDay = (id, dateKey, done) => setHabitDay(id, dateKey, done)
 
-  return { habits, loading, error, createHabit, setDay }
-}
+  return { habits, loading, error, createHabit, editHabit, removeHabit, setDay }
+} 

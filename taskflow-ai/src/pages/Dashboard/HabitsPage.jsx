@@ -1,8 +1,15 @@
 import { useOutletContext } from 'react-router'
-import HabitsPanel from '../../components/Dashboard/HabitsPanel'
+import WeeklyHabits from '../../components/Dashboard/WeeklyHabits'
 
 export default function HabitsPage() {
-  const { habits, toggleHabit } = useOutletContext()
+  const {
+    habits,
+    loadingHabits,
+    toggleHabitDay,
+    openAddHabit,
+    openEditHabit,
+    askDeleteHabit,
+  } = useOutletContext()
 
   return (
     <>
@@ -10,9 +17,14 @@ export default function HabitsPage() {
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-8">
         Check in every day to build your streaks.
       </p>
-      <div className="max-w-2xl">
-        <HabitsPanel habits={habits} onToggle={toggleHabit} />
-      </div>
+      <WeeklyHabits
+        habits={habits}
+        loading={loadingHabits}
+        onToggleDay={toggleHabitDay}
+        onAdd={openAddHabit}
+        onEdit={openEditHabit}
+        onDelete={askDeleteHabit}
+      />
     </>
   )
 }

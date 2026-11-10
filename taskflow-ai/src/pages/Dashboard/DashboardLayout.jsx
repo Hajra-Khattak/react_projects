@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router'
+import { useRef, useState } from 'react'
+import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import Sidebar from '../../components/Sidebar/Sidebar'
 import Button from '../../components/Button/Button'
 import Input from '../../components/Input/Input'
@@ -15,10 +15,30 @@ import { habitColors } from '../../utils/constants'
 
 export default function DashboardLayout() {
   const { timeZone, today } = useTimeZone()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [searchParams] = useSearchParams()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [search, setSearch] = useState('')
   const [actionError, setActionError] = useState('')
+
+  // ---------- Search ----------
+  // The search text lives in the URL (?q=...), so the box is filled only on the results page
+  const onSearchPage = pathname === '/dashboard/search'
+  const searchText = onSearchPage ? searchParams.get('q') || '' : ''
+  const returnTo = useRef('/dashboard') // the page to go back to when the box is cleared
+
+  const handleSearch = (e) => {
+    const value = e.target.value
+
+    if (value === '') {
+      if (onSearchPage) navigate(returnTo.current, { replace: true })
+      return
+    }
+
+    if (!onSearchPage) returnTo.current = pathname
+    navigate(`/dashboard/search?q=${encodeURIComponent(value)}`, { replace: onSearchPage })
+  }
 
   const {
     tasks,
@@ -34,15 +54,22 @@ export default function DashboardLayout() {
     loading: loadingHabits,
     error: habitsError,
     createHabit,
+    editHabit,
+    removeHabit,
     setDay,
   } = useHabits()
 
-  // Popups
+  // Task popups
   const [formState, setFormState] = useState(null) // { task, status, due }
-  const [habitFormOpen, setHabitFormOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+
+  // Habit popups
+  const [habitFormState, setHabitFormState] = useState(null) // { habit } (habit null = create)
+  const [habitDeleteTarget, setHabitDeleteTarget] = useState(null)
+  const [habitDeleting, setHabitDeleting] = useState(false)
+  const [habitDeleteError, setHabitDeleteError] = useState('')
 
   // Habits with calculated fields (done today, streaks)
   const habits = rawHabits.map((h) => {
@@ -83,7 +110,7 @@ export default function DashboardLayout() {
     }
   }
 
-  // Tasks
+  // ---------- Tasks ----------
   const openAdd = (status = 'todo', due = '') => setFormState({ task: null, status, due })
   const openEdit = (task) => setFormState({ task, status: task.status, due: task.due })
   const closeForm = () => setFormState(null)
@@ -121,16 +148,40 @@ export default function DashboardLayout() {
     }
   }
 
-  // Habits
-  const openAddHabit = () => setHabitFormOpen(true)
-  const closeHabitForm = () => setHabitFormOpen(false)
+  // ---------- Habits ----------
+  const openAddHabit = () => setHabitFormState({ habit: null })
+  const openEditHabit = (habit) => setHabitFormState({ habit })
+  const closeHabitForm = () => setHabitFormState(null)
 
+  // Creates a new habit, or saves changes when a habit is being edited
   const handleSaveHabit = async (data) => {
-    await createHabit({
-      ...data,
-      color: habitColors[rawHabits.length % habitColors.length],
-    })
+    if (habitFormState.habit) {
+      await editHabit(habitFormState.habit.id, data)
+    } else {
+      await createHabit(data)
+    }
     closeHabitForm()
+  }
+
+  const askDeleteHabit = (habit) => {
+    setHabitDeleteError('')
+    setHabitDeleteTarget(habit)
+  }
+  const closeHabitDelete = () => {
+    if (!habitDeleting) setHabitDeleteTarget(null)
+  }
+  const confirmDeleteHabit = async () => {
+    setHabitDeleting(true)
+    setHabitDeleteError('')
+    try {
+      await removeHabit(habitDeleteTarget.id)
+      setHabitDeleteTarget(null)
+    } catch (err) {
+      console.error(err)
+      setHabitDeleteError('Could not delete the habit. Please try again.')
+    } finally {
+      setHabitDeleting(false)
+    }
   }
 
   const toggleHabitDay = (habit, dateKey) =>
@@ -141,10 +192,6 @@ export default function DashboardLayout() {
     const habit = habits.find((h) => h.id === id)
     if (habit) toggleHabitDay(habit, today)
   }
-
-  const visibleTasks = tasks.filter((t) =>
-    t.title.toLowerCase().includes(search.toLowerCase())
-  )
 
   const bannerError = actionError || tasksError || habitsError
 
@@ -169,15 +216,11 @@ export default function DashboardLayout() {
           <Input
             id="search"
             type="search"
-            placeholder="Search tasks..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tasks and habits..."
+            value={searchText}
+            onChange={handleSearch}
             className="flex-1 max-w-md"
           />
-
-          <Button size="sm" onClick={() => openAdd('todo')} className="shrink-0">
-            + New task
-          </Button>
         </header>
 
         {/* Page content */}
@@ -192,7 +235,7 @@ export default function DashboardLayout() {
             <Outlet
               context={{
                 tasks,
-                visibleTasks,
+                visibleTasks: tasks,
                 loadingTasks,
                 habits,
                 loadingHabits,
@@ -202,6 +245,8 @@ export default function DashboardLayout() {
                 toggleHabitDay,
                 toggleTaskDone,
                 openAddHabit,
+                openEditHabit,
+                askDeleteHabit,
                 openAdd,
                 openEdit,
                 askDelete,
@@ -221,10 +266,7 @@ export default function DashboardLayout() {
         defaultDue={formState?.due}
       />
 
-      {/* New habit popup */}
-      <HabitFormModal open={habitFormOpen} onClose={closeHabitForm} onSave={handleSaveHabit} />
-
-      {/* Delete confirmation popup */}
+      {/* Delete task popup */}
       <Modal open={!!deleteTarget} onClose={closeDelete} title="Delete task?">
         <p className="text-sm text-gray-600 dark:text-gray-400">
           "{deleteTarget?.title}" will be deleted. This can't be undone.
@@ -237,6 +279,34 @@ export default function DashboardLayout() {
             Cancel
           </Button>
           <Button variant="danger" onClick={confirmDelete} loading={deleting}>
+            Delete
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Add / Edit habit popup */}
+      <HabitFormModal
+        open={!!habitFormState}
+        onClose={closeHabitForm}
+        onSave={handleSaveHabit}
+        habit={habitFormState?.habit}
+        defaultColor={habitColors[rawHabits.length % habitColors.length]}
+      />
+
+      {/* Delete habit popup */}
+      <Modal open={!!habitDeleteTarget} onClose={closeHabitDelete} title="Delete habit?">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          "{habitDeleteTarget?.name}" will be deleted, along with its check-in history. This can't
+          be undone.
+        </p>
+
+        {habitDeleteError && <p className="mt-3 text-sm text-red-600">{habitDeleteError}</p>}
+
+        <div className="mt-6 flex gap-3 justify-end">
+          <Button variant="secondary" onClick={closeHabitDelete} disabled={habitDeleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDeleteHabit} loading={habitDeleting}>
             Delete
           </Button>
         </div>

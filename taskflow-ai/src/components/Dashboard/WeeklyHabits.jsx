@@ -2,7 +2,18 @@ import { getWeekDays, formatKey } from '../../utils/dates'
 import { useTimeZone } from '../../context/TimeZoneContext'
 import Skeleton from '../Skeleton/Skeleton'
 
-export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd }) {
+const iconProps = {
+  className: 'w-4 h-4',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  viewBox: '0 0 24 24',
+  'aria-hidden': true,
+}
+
+export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd, onEdit, onDelete }) {
   const { today } = useTimeZone()
   const week = getWeekDays(today)
   const weekKeys = week.map((d) => d.key)
@@ -11,12 +22,7 @@ export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd }) {
   const yearNumber = today.slice(0, 4)
 
   const weekCount = (h) => h.completedDates.filter((k) => weekKeys.includes(k)).length
-  const safeHabits = Array.isArray(habits) ? habits : []
-  const totalGoal = safeHabits.reduce(
-  (sum, h) => sum + (Number(h.weeklyGoal) || 0),
-  0
-)
-  // const totalGoal = habits.reduce((sum, h) => sum + h.weeklyGoal, 0)
+  const totalGoal = habits.reduce((sum, h) => sum + h.weeklyGoal, 0)
   const totalDone = habits.reduce((sum, h) => sum + Math.min(h.weeklyGoal, weekCount(h)), 0)
 
   return (
@@ -45,9 +51,9 @@ export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd }) {
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
+        <div className="min-w-[660px]">
           {/* Day header */}
-          <div className="grid grid-cols-[200px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800">
+          <div className="grid grid-cols-[220px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800">
             <div />
             {week.map((d) => (
               <div key={d.name} className="py-3 text-center border-l border-gray-100 dark:border-gray-800">
@@ -106,15 +112,17 @@ export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd }) {
               return (
                 <div
                   key={habit.id}
-                  className="grid grid-cols-[200px_repeat(7,1fr)] items-center border-b last:border-b-0 border-gray-100 dark:border-gray-800"
+                  className="group grid grid-cols-[220px_repeat(7,1fr)] items-center border-b last:border-b-0 border-gray-100 dark:border-gray-800"
                 >
-                  <div className="flex items-center gap-3 py-4 pr-3">
+                  {/* Name, progress, edit and delete */}
+                  <div className="flex items-center gap-3 py-4 pr-2">
                     <span
                       className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm font-bold text-white ${habit.color}`}
                     >
                       {habit.name.charAt(0).toUpperCase()}
                     </span>
-                    <div className="min-w-0">
+
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                         {habit.name}
                       </p>
@@ -129,8 +137,32 @@ export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd }) {
                         {habit.streak > 0 && ` · ${habit.streak} day streak`}
                       </p>
                     </div>
+
+                    <div className="flex shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(habit)}
+                        aria-label={`Edit ${habit.name}`}
+                        className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                      >
+                        <svg {...iconProps}>
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(habit)}
+                        aria-label={`Delete ${habit.name}`}
+                        className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                      >
+                        <svg {...iconProps}>
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14M10 11v6M14 11v6" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Day checkboxes */}
                   {week.map((d) => {
                     const checked = habit.completedDates.includes(d.key)
                     return (

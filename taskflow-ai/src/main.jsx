@@ -20,6 +20,7 @@ import StatsPage from './pages/Dashboard/StatsPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { TimeZoneProvider } from './context/TimeZoneContext.jsx'
 import './services/firebase'
+import SearchPage from './pages/Dashboard/SearchPage.jsx'
 
 
 const router = createBrowserRouter(
@@ -31,10 +32,11 @@ const router = createBrowserRouter(
         <Route path='*' element={<NotFound />} />
         {/* <Route path='dashboard' element={<DashboardLayout />} /> */}
         <Route path='habits' element={<AddTask />} />
-        <Route path='habits' element={<AddTask />} />
+        {/* <Route path='habits' element={<AddTask />} /> */}
       </Route>
       <Route element={<ProtectedRoute />}>
       <Route path='dashboard'  element={<DashboardLayout/>}>
+        <Route path="search" element={<SearchPage />} />
         <Route index element={<DashboardHome/>} />
         <Route path="tasks" element={<TaskPage/>} />
         <Route path="habits" element={<HabitsPage />} />

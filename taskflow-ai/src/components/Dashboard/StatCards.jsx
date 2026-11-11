@@ -3,7 +3,7 @@ export default function StatCards({ tasks, habits }) {
   const doing = tasks.filter((t) => t.status === 'doing').length
   const done = tasks.filter((t) => t.status === 'done').length
   const percent = total === 0 ? 0 : Math.round((done / total) * 100)
-  const bestStreak = Math.max(0, ...habits.map((h) => h.streak))
+  const bestStreak = Math.max(0, ...habits.map((h) => h.best))
 
   const stats = [
     { label: 'Total tasks', value: total, note: 'All columns', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40' },

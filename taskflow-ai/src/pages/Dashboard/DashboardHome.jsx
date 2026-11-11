@@ -1,8 +1,10 @@
 import { useOutletContext } from 'react-router'
-import ActivityStreak from '../../components/dashboard/ActivityStreak'
-import WeeklyHabits from '../../components/dashboard/WeeklyHabits'
-import StatCards from '../../components/dashboard/StatCards'
-import TaskBoard from '../../components/dashboard/TaskBoard'
+import StreakOverview from '../../components/Dashboard/StreakOverview'
+import ActivityStreak from '../../components/Dashboard/ActivityStreak'
+import WeeklyHabits from '../../components/Dashboard/WeeklyHabits'
+import StatCards from '../../components/Dashboard/StatCards'
+import TaskBoard from '../../components/Dashboard/TaskBoard'
+import EmptyState from '../../components/EmptyState/EmptyState'
 
 export default function DashboardHome() {
   const {
@@ -20,6 +22,8 @@ export default function DashboardHome() {
     openAdd,
     openEdit,
     askDelete,
+    moveTasks,
+    breakDownTask,
   } = useOutletContext()
 
   return (
@@ -29,7 +33,9 @@ export default function DashboardHome() {
         Your activity, habits and tasks for this week.
       </p>
 
-      <ActivityStreak counts={activityCounts} stats={activityStats} />
+      <StreakOverview habits={habits} counts={activityCounts} stats={activityStats} />
+
+      <ActivityStreak counts={activityCounts} stats={activityStats} showStats={false} />
 
       <div className="mt-6">
         <WeeklyHabits
@@ -46,6 +52,17 @@ export default function DashboardHome() {
         <StatCards tasks={tasks} habits={habits} />
       </div>
 
+      {!loadingTasks && tasks.length === 0 && (
+  <div className="mt-8">
+    <EmptyState
+      title="No tasks yet"
+      text="Add your first task, then drag it across the board as you work."
+      actionLabel="+ Add your first task"
+      onAction={() => openAdd('todo')}
+    />
+  </div>
+)}
+
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white mt-8 mb-4">Task board</h2>
       <TaskBoard
         tasks={visibleTasks}
@@ -53,6 +70,8 @@ export default function DashboardHome() {
         onAdd={openAdd}
         onEdit={openEdit}
         onDelete={askDelete}
+        onMove={moveTasks}
+        onBreakdown={breakDownTask}
       />
     </>
   )

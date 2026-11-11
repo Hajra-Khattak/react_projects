@@ -1,15 +1,9 @@
 import { priorityStyle } from '../../utils/constants'
 import { useTimeZone } from '../../context/TimeZoneContext'
 
-function isOverdue(task) {
-  if (!task.due || task.status === 'done') return false
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  return task.due < today
+function isOverdue(task, today) {
+  return !!task.due && task.status !== 'done' && task.due < today
 }
-// function isOverdue(task, today) {
-//   return !!task.due && task.status !== 'done' && task.due < today
-// }
 
 const iconProps = {
   className: 'w-4 h-4',
@@ -22,16 +16,59 @@ const iconProps = {
   'aria-hidden': true,
 }
 
-export default function TaskCard({ task, onEdit, onDelete }) {
-//   const overdue = isOverdue(task)
+function GripIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="9" cy="6" r="1.5" />
+      <circle cx="15" cy="6" r="1.5" />
+      <circle cx="9" cy="12" r="1.5" />
+      <circle cx="15" cy="12" r="1.5" />
+      <circle cx="9" cy="18" r="1.5" />
+      <circle cx="15" cy="18" r="1.5" />
+    </svg>
+  )
+}
+
+export default function TaskCard({
+  task,
+  onEdit,
+  onDelete,
+  onBreakdown,
+  dragHandleRef,
+  dragHandleProps,
+  isOverlay = false,
+}) {
   const { today } = useTimeZone()
-const overdue = isOverdue(task, today)
+  const overdue = isOverdue(task, today)
 
   return (
-    <div className="group bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
-      <div className="flex items-start justify-between gap-2">
+    <div
+      className={`group bg-white dark:bg-gray-800 rounded-lg p-3 border ${
+        isOverlay
+          ? 'shadow-xl ring-2 ring-blue-400 border-blue-300 dark:border-blue-700 rotate-2 cursor-grabbing'
+          : 'shadow-sm border-gray-100 dark:border-gray-700'
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        {/* Drag handle */}
+        {dragHandleProps ? (
+          <button
+            type="button"
+            ref={dragHandleRef}
+            {...dragHandleProps}
+            aria-label={`Drag ${task.title}`}
+            className="mt-0.5 shrink-0 p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-grab active:cursor-grabbing touch-none"
+          >
+            <GripIcon />
+          </button>
+        ) : isOverlay ? (
+          <span className="mt-0.5 shrink-0 p-0.5 text-gray-500">
+            <GripIcon />
+          </span>
+        ) : null}
+
         <p
-          className={`text-sm font-medium break-words ${
+          className={`flex-1 min-w-0 text-sm font-medium break-words ${
             task.status === 'done'
               ? 'line-through text-gray-400'
               : 'text-gray-900 dark:text-white'
@@ -40,28 +77,43 @@ const overdue = isOverdue(task, today)
           {task.title}
         </p>
 
-        <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition">
-          <button
-            type="button"
-            onClick={() => onEdit(task)}
-            aria-label={`Edit ${task.title}`}
-            className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-          >
-            <svg {...iconProps}>
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(task)}
-            aria-label={`Delete ${task.title}`}
-            className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-          >
-            <svg {...iconProps}>
-              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14M10 11v6M14 11v6" />
-            </svg>
-          </button>
-        </div>
+        {!isOverlay && (
+          <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition">
+            {onBreakdown && task.status !== 'done' && (
+              <button
+                type="button"
+                onClick={() => onBreakdown(task)}
+                aria-label={`Break down ${task.title} into subtasks`}
+                title="Break this down"
+                className="p-1.5 rounded-md text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+              >
+                <svg {...iconProps}>
+                  <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
+                </svg>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onEdit(task)}
+              aria-label={`Edit ${task.title}`}
+              className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+            >
+              <svg {...iconProps}>
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(task)}
+              aria-label={`Delete ${task.title}`}
+              className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+            >
+              <svg {...iconProps}>
+                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14M10 11v6M14 11v6" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {task.description && (

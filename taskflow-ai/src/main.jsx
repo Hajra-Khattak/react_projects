@@ -21,6 +21,9 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { TimeZoneProvider } from './context/TimeZoneContext.jsx'
 import './services/firebase'
 import SearchPage from './pages/Dashboard/SearchPage.jsx'
+import About from './pages/About/About.jsx'
+import Contact from './pages/Contact/Contact.jsx'
+import { Toaster } from 'react-hot-toast'
 
 
 const router = createBrowserRouter(
@@ -32,6 +35,8 @@ const router = createBrowserRouter(
         <Route path='*' element={<NotFound />} />
         {/* <Route path='dashboard' element={<DashboardLayout />} /> */}
         <Route path='habits' element={<AddTask />} />
+        <Route path='about' element={<About />} />
+        <Route path='contact' element={<Contact />} />
         {/* <Route path='habits' element={<AddTask />} /> */}
       </Route>
       <Route element={<ProtectedRoute />}>
@@ -61,6 +66,17 @@ createRoot(document.getElementById('root')).render(
 <TimeZoneProvider>
 
       <RouterProvider router={router} />
+      <Toaster
+    position="top-center"
+    toastOptions={{
+      duration: 3000,
+      style: {
+        background: 'var(--toast-bg)',
+        color: 'var(--toast-fg)',
+        border: '1px solid var(--toast-border)',
+      },
+    }}
+  />
 </TimeZoneProvider>
       </AuthProvider>
     </ThemeProvider>

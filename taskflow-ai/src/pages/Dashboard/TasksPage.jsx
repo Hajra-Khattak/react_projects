@@ -1,20 +1,24 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router'
-import TaskBoard from '../../components/dashboard/TaskBoard'
+import TaskBoard from '../../components/Dashboard/TaskBoard'
 import Button from '../../components/Button/Button'
+import EmptyState from '../../components/EmptyState/EmptyState'
 
 const filters = ['All', 'High', 'Medium', 'Low']
 
 export default function TasksPage() {
-  const { tasks, visibleTasks, loadingTasks, openAdd, openEdit, askDelete } = useOutletContext()
+  // const { tasks, visibleTasks, loadingTasks, openAdd, openEdit, askDelete, moveTasks } =
+  //   useOutletContext()
+
+  const { tasks, visibleTasks, loadingTasks, openAdd, openEdit, askDelete, moveTasks, breakDownTask } =
+  useOutletContext()
   const [priority, setPriority] = useState('All')
 
-  // visibleTasks is already filtered by the search box. Here we also filter by priority.
   const shownTasks = visibleTasks.filter(
     (t) => priority === 'All' || t.priority === priority
   )
 
-  const isFiltering = shownTasks.length !== tasks.length
+  const isFiltering = priority !== 'All'
 
   return (
     <>
@@ -22,7 +26,7 @@ export default function TasksPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Tasks</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Plan, track and finish your work.
+            Plan, track and finish your work. Drag the grip on a card to move it.
           </p>
         </div>
 
@@ -53,10 +57,21 @@ export default function TasksPage() {
 
         {!loadingTasks && isFiltering && (
           <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-            Showing {shownTasks.length} of {tasks.length} tasks
+            Showing {shownTasks.length} of {tasks.length} tasks. Choose All to drag tasks.
           </span>
         )}
       </div>
+
+      {!loadingTasks && tasks.length === 0 && (
+  <div className="mb-6">
+    <EmptyState
+      title="No tasks yet"
+      text="Add your first task, then drag it across the board as you work."
+      actionLabel="+ Add your first task"
+      onAction={() => openAdd('todo')}
+    />
+  </div>
+)}
 
       <TaskBoard
         tasks={shownTasks}
@@ -64,6 +79,9 @@ export default function TasksPage() {
         onAdd={openAdd}
         onEdit={openEdit}
         onDelete={askDelete}
+        onMove={moveTasks}
+        onBreakdown={breakDownTask}
+        draggable={!isFiltering}
       />
     </>
   )

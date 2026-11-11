@@ -42,7 +42,7 @@ function buildWeeks(year, counts, today) {
   return weeks
 }
 
-export default function ActivityStreak({ counts = {}, stats = {} }) {
+export default function ActivityStreak({ counts = {}, stats = {}, showStats = true }) {
   const { today } = useTimeZone()
   const year = Number(today.slice(0, 4))
   const weeks = buildWeeks(year, counts, today)
@@ -138,6 +138,7 @@ export default function ActivityStreak({ counts = {}, stats = {} }) {
       </section>
 
       {/* Side stat cards */}
+      {showStats && (
       <div className="grid grid-cols-3 xl:grid-cols-1 gap-4 xl:w-44">
         {sideStats.map((s) => (
           <div
@@ -152,6 +153,7 @@ export default function ActivityStreak({ counts = {}, stats = {} }) {
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }

@@ -135,6 +135,7 @@ export default function WeeklyHabits({ habits, loading, onToggleDay, onAdd, onEd
                       >
                         {count}/{habit.weeklyGoal} this week
                         {habit.streak > 0 && ` · ${habit.streak} day streak`}
+                        {habit.best > 0 && ` · best ${habit.best}`}
                       </p>
                     </div>
 

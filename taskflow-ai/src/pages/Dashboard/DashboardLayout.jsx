@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
+import toast from 'react-hot-toast'
 import Sidebar from '../../components/Sidebar/Sidebar'
 import Button from '../../components/Button/Button'
 import Input from '../../components/Input/Input'
 import Modal from '../../components/Modal/Modal'
-import TaskFormModal from '../../components/Dashboard/TaskFormModal'
-import HabitFormModal from '../../components/Dashboard/HabitFormModal'
+import TaskFormModal from '../../components/dashboard/TaskFormModal'
+import HabitFormModal from '../../components/dashboard/HabitFormModal'
+import AiBreakdownModal from '../../components/dashboard/AiBreakdownModal'
 import { useTasks } from '../../hooks/useTasks'
 import { useHabits } from '../../hooks/useHabits'
 import { useTimeZone } from '../../context/TimeZoneContext'
@@ -20,7 +22,6 @@ export default function DashboardLayout() {
   const [searchParams] = useSearchParams()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [actionError, setActionError] = useState('')
 
   // ---------- Search ----------
   // The search text lives in the URL (?q=...), so the box is filled only on the results page
@@ -47,6 +48,7 @@ export default function DashboardLayout() {
     createTask,
     editTask,
     removeTask,
+    moveTasks,
   } = useTasks()
 
   const {
@@ -64,6 +66,9 @@ export default function DashboardLayout() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+
+  // AI breakdown popup
+  const [aiTarget, setAiTarget] = useState(null)
 
   // Habit popups
   const [habitFormState, setHabitFormState] = useState(null) // { habit } (habit null = create)
@@ -99,14 +104,13 @@ export default function DashboardLayout() {
     consistency: goalTotal === 0 ? 0 : Math.round((goalDone / goalTotal) * 100),
   }
 
-  // Runs an action and shows one error message if it fails
-  const run = async (action) => {
-    setActionError('')
+  // Runs an action and shows a red toast if it fails
+  const run = async (action, failMessage = 'Something went wrong. Please try again.') => {
     try {
       await action()
     } catch (err) {
       console.error(err)
-      setActionError('Something went wrong. Please try again.')
+      toast.error(failMessage)
     }
   }
 
@@ -115,17 +119,34 @@ export default function DashboardLayout() {
   const openEdit = (task) => setFormState({ task, status: task.status, due: task.due })
   const closeForm = () => setFormState(null)
 
+  // If saving fails, the form stays open and shows its own error message
   const handleSave = async (data) => {
     if (formState.task) {
       await editTask(formState.task.id, data)
+      toast.success('Task updated')
     } else {
       await createTask(data)
+      toast.success('Task added')
     }
     closeForm()
   }
 
   const toggleTaskDone = (task) =>
-    run(() => editTask(task.id, { status: task.status === 'done' ? 'todo' : 'done' }))
+    run(
+      () => editTask(task.id, { status: task.status === 'done' ? 'todo' : 'done' }),
+      'Could not update the task.'
+    )
+
+  // Saves the new status and order after a drag and drop
+  const handleMoveTasks = async (updates) => {
+    try {
+      await moveTasks(updates)
+    } catch (err) {
+      console.error(err)
+      toast.error('Could not move the task. It was put back.')
+      throw err // lets the board put the card back where it was
+    }
+  }
 
   const askDelete = (task) => {
     setDeleteError('')
@@ -140,12 +161,32 @@ export default function DashboardLayout() {
     try {
       await removeTask(deleteTarget.id)
       setDeleteTarget(null)
+      toast.success('Task deleted')
     } catch (err) {
       console.error(err)
       setDeleteError('Could not delete the task. Please try again.')
     } finally {
       setDeleting(false)
     }
+  }
+
+  // ---------- AI breakdown ----------
+  const openBreakdown = (task) => setAiTarget(task)
+  const closeBreakdown = () => setAiTarget(null)
+
+  // Saves the chosen subtasks as new tasks in To Do, one after another so they keep their order
+  const handleAddSubtasks = async (titles, parent) => {
+    for (const title of titles) {
+      await createTask({
+        title,
+        description: `Subtask of: ${parent.title}`,
+        priority: parent.priority,
+        due: parent.due || '',
+        status: 'todo',
+      })
+    }
+    toast.success(`${titles.length} ${titles.length === 1 ? 'task' : 'tasks'} added`)
+    closeBreakdown()
   }
 
   // ---------- Habits ----------
@@ -157,8 +198,10 @@ export default function DashboardLayout() {
   const handleSaveHabit = async (data) => {
     if (habitFormState.habit) {
       await editHabit(habitFormState.habit.id, data)
+      toast.success('Habit updated')
     } else {
       await createHabit(data)
+      toast.success('Habit added')
     }
     closeHabitForm()
   }
@@ -176,6 +219,7 @@ export default function DashboardLayout() {
     try {
       await removeHabit(habitDeleteTarget.id)
       setHabitDeleteTarget(null)
+      toast.success('Habit deleted')
     } catch (err) {
       console.error(err)
       setHabitDeleteError('Could not delete the habit. Please try again.')
@@ -185,7 +229,10 @@ export default function DashboardLayout() {
   }
 
   const toggleHabitDay = (habit, dateKey) =>
-    run(() => setDay(habit.id, dateKey, !habit.completedDates.includes(dateKey)))
+    run(
+      () => setDay(habit.id, dateKey, !habit.completedDates.includes(dateKey)),
+      'Could not save your check-in.'
+    )
 
   // Used by the habits list (toggles today)
   const toggleHabit = (id) => {
@@ -193,7 +240,8 @@ export default function DashboardLayout() {
     if (habit) toggleHabitDay(habit, today)
   }
 
-  const bannerError = actionError || tasksError || habitsError
+  // Only loading errors stay as a banner. Everything else is a toast.
+  const bannerError = tasksError || habitsError
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 lg:flex">
@@ -250,6 +298,8 @@ export default function DashboardLayout() {
                 openAdd,
                 openEdit,
                 askDelete,
+                moveTasks: handleMoveTasks,
+                breakDownTask: openBreakdown,
               }}
             />
           </div>
@@ -283,6 +333,14 @@ export default function DashboardLayout() {
           </Button>
         </div>
       </Modal>
+
+      {/* AI breakdown popup */}
+      <AiBreakdownModal
+        open={!!aiTarget}
+        task={aiTarget}
+        onClose={closeBreakdown}
+        onAdd={handleAddSubtasks}
+      />
 
       {/* Add / Edit habit popup */}
       <HabitFormModal

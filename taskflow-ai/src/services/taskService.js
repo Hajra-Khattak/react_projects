@@ -8,6 +8,7 @@ import {
   where,
   onSnapshot,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -40,6 +41,25 @@ export async function updateTask(taskId, changes) {
   }
 
   return updateDoc(doc(db, 'tasks', taskId), data)
+}
+
+// MOVE many tasks at once after a drag and drop.
+// updates = [{ id, status, order, statusChanged }]
+export async function reorderTasks(updates) {
+  const batch = writeBatch(db)
+
+  updates.forEach(({ id, status, order, statusChanged }) => {
+    const data = { order }
+
+    if (statusChanged) {
+      data.status = status
+      data.completedAt = status === 'done' ? serverTimestamp() : null
+    }
+
+    batch.update(doc(db, 'tasks', id), data)
+  })
+
+  return batch.commit()
 }
 
 // DELETE

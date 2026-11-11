@@ -2,6 +2,7 @@ import { NavLink, Link, useNavigate  } from 'react-router'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import TimeZoneSelect from '../TimeZoneSelect/TimeZoneSelect'
+import toast from 'react-hot-toast'
 
 
 const links = [
@@ -24,13 +25,15 @@ export default function Sidebar({ open, onClose }) {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    try {
-      await logout()
-      navigate('/login', { replace: true })
-    } catch (err) {
-      console.error('Logout failed:', err)
-    }
+  try {
+    await logout()
+    toast.success('Logged out')
+    navigate('/login', { replace: true })
+  } catch (err) {
+    console.error('Logout failed:', err)
+    toast.error('Could not log out. Please try again.')
   }
+}
 
   return (
     <>
